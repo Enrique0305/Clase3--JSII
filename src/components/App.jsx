@@ -13,33 +13,56 @@ import { CreateTodoButton } from './CreateTodoButton';
 //   { text: 'LALALALAA', completed: false },
 // ];
 function useLocalStorage(itemName, initialValue) {
-  const localStorageItem = localStorage.getItem(itemName);
-  let parsedItem;
+  const [error, setError] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [item, setItem] = React.useState(initialValue);
   
-  if (!localStorageItem) {
-    localStorage.setItem(itemName, JSON.stringify(initialValue));
-    parsedItem = initialValue;
-  } else {
-    parsedItem = JSON.parse(localStorageItem);
-  }
+  React.useEffect(() => {
+    setTimeout(() => {
+      try {
+        const localStorageItem = localStorage.getItem(itemName);
+        let parsedItem;
+        
+        if (!localStorageItem) {
+          localStorage.setItem(itemName, JSON.stringify(initialValue));
+          parsedItem = initialValue;
+        } else {
+          parsedItem = JSON.parse(localStorageItem);
+        }
 
-  const [item, setItem] = React.useState(parsedItem);
-
+        setItem(parsedItem);
+        setLoading(false);
+      } catch(error) {
+        setError(error);
+      }
+    }, 1000);
+  });
+  
   const saveItem = (newItem) => {
-    const stringifiedItem = JSON.stringify(newItem);
-    localStorage.setItem(itemName, stringifiedItem);
-    setItem(newItem);
+    try {
+      const stringifiedItem = JSON.stringify(newItem);
+      localStorage.setItem(itemName, stringifiedItem);
+      setItem(newItem);
+    } catch(error) {
+      setError(error);
+    }
   };
 
-  return [
+  return {
     item,
     saveItem,
-  ];
+    loading,
+    error,
+  };
 }
 
 function App() {
-  const [patito, savePatito] = useLocalStorage('PATITO_V1', 'FERNANDO');
-  const [todos, saveTodos] = useLocalStorage('TODOS_V1', []);
+  const {
+    item: todos,
+    saveItem: saveTodos,
+    loading,
+    error,
+  } = useLocalStorage('TODOS_V1', []);
 
   const [searchValue, setSearchValue] = React.useState('');
 
@@ -83,7 +106,11 @@ function App() {
       />
 
       <TodoList>
-      {searchedTodos.map(todo => (
+      {error && <p>Desespérate, hubo un error...</p>}
+        {loading && <p>Estamos cargando, no desesperes...</p>}
+        {(!loading && !searchedTodos.length) && <p>¡Crea tu primer TODO!</p>}
+        
+        {searchedTodos.map(todo => (
           <TodoItem
             key={todo.text}
             text={todo.text}
